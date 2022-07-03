@@ -47,14 +47,18 @@ app.post("/split-payments/compute", async (req, res) => {
           let { SplitBreakdown } = result;
           const { SplitValue, SplitEntityId } = transaction;
 
-          // Confirm that split Amount is not less than zero and is less than transaction amount
-          if (SplitValue > newTransaction.Amount || SplitValue < 0) {
-            throw Error(
-              "Split amount value is either greater than transaction amount or less than zero"
-            );
+          if (SplitValue && SplitEntityId) {
+            if (SplitValue > newTransaction.Amount || SplitValue < 0) {
+              // Confirm that split Amount is not less than zero and is less than transaction amount
+              throw Error(
+                "Split amount value is either greater than transaction amount or less than zero"
+              );
+            }
+            result.Balance = result.Balance - SplitValue;
+            SplitBreakdown.push({ SplitEntityId, Amount: SplitValue });
+          } else {
+            throw Error("SplitValue or SplitEntityId missing");
           }
-          result.Balance = result.Balance - SplitValue;
-          SplitBreakdown.push({ SplitEntityId, Amount: SplitValue });
 
           return result;
         });
@@ -66,19 +70,24 @@ app.post("/split-payments/compute", async (req, res) => {
           let { SplitBreakdown } = result;
           const { SplitValue, SplitEntityId } = transaction;
 
-          let amount = (SplitValue / 100) * result.Balance;
+          if (SplitValue && SplitEntityId) {
+            let amount = (SplitValue / 100) * result.Balance;
 
-          // Confirm that split Amount is not less than zero and is less than transaction amount
-          if (amount > newTransaction.Amount || amount < 0) {
-            throw Error(
-              "Split amount value is either greater than transaction amount or less than zero"
-            );
+            // Confirm that split Amount is not less than zero and is less than transaction amount
+            if (amount > newTransaction.Amount || amount < 0) {
+              throw Error(
+                "Split amount value is either greater than transaction amount or less than zero"
+              );
+            }
+            SplitBreakdown.push({
+              SplitEntityId,
+              Amount: amount,
+            });
+            result.Balance = result.Balance - amount;
+          } else {
+            throw Error("SplitValue or SplitEntityId missing");
           }
-          SplitBreakdown.push({
-            SplitEntityId,
-            Amount: amount,
-          });
-          result.Balance = result.Balance - amount;
+
           return result;
         });
       }
@@ -98,19 +107,24 @@ app.post("/split-payments/compute", async (req, res) => {
           let { SplitBreakdown } = result;
           const { SplitValue, SplitEntityId } = transaction;
 
-          let amount = (SplitValue / totalRatio) * ratioBalance;
+          if (SplitValue && SplitEntityId) {
+            let amount = (SplitValue / totalRatio) * ratioBalance;
 
-          // Confirm that split Amount is not less than zero and is less than transaction amount
-          if (amount > newTransaction.Amount || amount < 0) {
-            throw Error(
-              "Split amount value is either greater than transaction amount or less than zero"
-            );
+            // Confirm that split Amount is not less than zero and is less than transaction amount
+            if (amount > newTransaction.Amount || amount < 0) {
+              throw Error(
+                "Split amount value is either greater than transaction amount or less than zero"
+              );
+            }
+            SplitBreakdown.push({
+              SplitEntityId,
+              Amount: amount,
+            });
+            result.Balance = result.Balance - amount;
+          } else {
+            throw Error("SplitValue or SplitEntityId missing");
           }
-          SplitBreakdown.push({
-            SplitEntityId,
-            Amount: amount,
-          });
-          result.Balance = result.Balance - amount;
+
           return result;
         });
       }
