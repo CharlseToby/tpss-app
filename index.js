@@ -19,17 +19,21 @@ app.post("/split-payments/compute", async (req, res) => {
       };
 
       SplitInfo.forEach((item) => {
-        switch (item.SplitType) {
-          case "FLAT":
-            arrayObject.fArray.push(item);
-            break;
-          case "PERCENTAGE":
-            arrayObject.pArray.push(item);
-            break;
-          case "RATIO":
-            arrayObject.rArray.push(item);
-          default:
-            break;
+        if (item.SplitType) {
+          switch (item.SplitType) {
+            case "FLAT":
+              arrayObject.fArray.push(item);
+              break;
+            case "PERCENTAGE":
+              arrayObject.pArray.push(item);
+              break;
+            case "RATIO":
+              arrayObject.rArray.push(item);
+            default:
+              break;
+          }
+        } else {
+          throw Error("SplitType missing");
         }
         return arrayObject;
       });
