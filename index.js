@@ -11,17 +11,28 @@ app.post("/split-payments/compute", async (req, res) => {
   try {
     if (ID && Amount && Currency && CustomerEmail && SplitInfo) {
       //Sort arrays based on different transaction types
-      let flatArray = newTransaction.SplitInfo.filter(
-        (item) => item.SplitType === "FLAT"
-      );
-      let percentageArray = newTransaction.SplitInfo.filter(
-        (item) => item.SplitType === "PERCENTAGE"
-      );
-      let ratioArray = newTransaction.SplitInfo.filter(
-        (item) => item.SplitType === "RATIO"
-      );
 
-      const sortedArray = flatArray.concat(percentageArray, ratioArray);
+      let arrayObject = {
+        fArray: [],
+        pArray: [],
+        rArray: [],
+      };
+
+      SplitInfo.forEach((item) => {
+        switch (item.SplitType) {
+          case "FLAT":
+            arrayObject.fArray.push(item);
+            break;
+          case "PERCENTAGE":
+            arrayObject.pArray.push(item);
+            break;
+          case "RATIO":
+            arrayObject.rArray.push(item);
+          default:
+            break;
+        }
+        return arrayObject;
+      });
 
       // Format for response
       let result = {
@@ -30,12 +41,12 @@ app.post("/split-payments/compute", async (req, res) => {
         SplitBreakdown: [],
       };
 
-      //Compute split amounts for FLAT and PERCENTAGE
-      sortedArray.forEach((transaction) => {
-        let { SplitBreakdown } = result;
-        const { SplitType, SplitValue, SplitEntityId } = transaction;
+      //Compute split amounts for FLAT
+      if (arrayObject.fArray.length > 0) {
+        arrayObject.fArray.forEach((transaction) => {
+          let { SplitBreakdown } = result;
+          const { SplitValue, SplitEntityId } = transaction;
 
-        if (SplitType === "FLAT") {
           // Confirm that split Amount is not less than zero and is less than transaction amount
           if (SplitValue > newTransaction.Amount || SplitValue < 0) {
             throw Error(
@@ -44,7 +55,17 @@ app.post("/split-payments/compute", async (req, res) => {
           }
           result.Balance = result.Balance - SplitValue;
           SplitBreakdown.push({ SplitEntityId, Amount: SplitValue });
-        } else if (SplitType === "PERCENTAGE") {
+
+          return result;
+        });
+      }
+
+      //Compute split amounts for PERCENTAGE
+      if (arrayObject.pArray.length > 0) {
+        arrayObject.pArray.forEach((transaction) => {
+          let { SplitBreakdown } = result;
+          const { SplitValue, SplitEntityId } = transaction;
+
           let amount = (SplitValue / 100) * result.Balance;
 
           // Confirm that split Amount is not less than zero and is less than transaction amount
@@ -58,24 +79,25 @@ app.post("/split-payments/compute", async (req, res) => {
             Amount: amount,
           });
           result.Balance = result.Balance - amount;
-        }
-        return result;
-      });
+          return result;
+        });
+      }
 
-      // Compute Total ratio
-      let totalRatio = 0;
-      ratioArray.forEach((transaction) => {
-        totalRatio = totalRatio + transaction.SplitValue;
-        return totalRatio;
-      });
+      //Compute split amounts for RATIO
+      if (arrayObject.rArray.length > 0) {
+        let totalRatio = 0;
+        arrayObject.rArray.forEach((transaction) => {
+          totalRatio = totalRatio + transaction.SplitValue;
+          return totalRatio;
+        });
 
-      // Compute split amount for RATIO transactions
-      let ratioBalance = result.Balance;
-      sortedArray.forEach((transaction) => {
-        let { SplitBreakdown } = result;
-        const { SplitType, SplitValue, SplitEntityId } = transaction;
+        // Compute split amount for RATIO transactions
+        let ratioBalance = result.Balance;
 
-        if (SplitType === "RATIO") {
+        arrayObject.rArray.forEach((transaction) => {
+          let { SplitBreakdown } = result;
+          const { SplitValue, SplitEntityId } = transaction;
+
           let amount = (SplitValue / totalRatio) * ratioBalance;
 
           // Confirm that split Amount is not less than zero and is less than transaction amount
@@ -89,9 +111,9 @@ app.post("/split-payments/compute", async (req, res) => {
             Amount: amount,
           });
           result.Balance = result.Balance - amount;
-        }
-        return result;
-      });
+          return result;
+        });
+      }
 
       //To check if sum of all split amount values is greater than transaction amount
       if (result.Balance < 0) {
@@ -102,7 +124,7 @@ app.post("/split-payments/compute", async (req, res) => {
       throw Error("Required field missing");
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(400).json({ message: error.message });
   }
 });
 
