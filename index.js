@@ -102,7 +102,7 @@ app.post("/split-payments/compute", async (req, res) => {
       throw Error("Required field missing");
     }
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
