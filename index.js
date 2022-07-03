@@ -17,26 +17,28 @@ app.post("/split-payments/compute", async (req, res) => {
         pArray: [],
         rArray: [],
       };
-
-      SplitInfo.forEach((item) => {
-        if (item.SplitType) {
-          switch (item.SplitType) {
-            case "FLAT":
-              arrayObject.fArray.push(item);
-              break;
-            case "PERCENTAGE":
-              arrayObject.pArray.push(item);
-              break;
-            case "RATIO":
-              arrayObject.rArray.push(item);
-            default:
-              break;
+      // Check if splitinfo array has at least one item and not more than 20 items.
+      if (SplitInfo.length >= 1 && SplitInfo.length <= 20) {
+        SplitInfo.forEach((item) => {
+          if (item.SplitType) {
+            switch (item.SplitType) {
+              case "FLAT":
+                arrayObject.fArray.push(item);
+                break;
+              case "PERCENTAGE":
+                arrayObject.pArray.push(item);
+                break;
+              case "RATIO":
+                arrayObject.rArray.push(item);
+              default:
+                break;
+            }
+          } else {
+            throw Error("SplitType missing");
           }
-        } else {
-          throw Error("SplitType missing");
-        }
-        return arrayObject;
-      });
+          return arrayObject;
+        });
+      }
 
       // Format for response
       let result = {
