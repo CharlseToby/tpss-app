@@ -38,6 +38,10 @@ app.post("/split-payments/compute", async (req, res) => {
           }
           return arrayObject;
         });
+      } else {
+        throw Error(
+          "Number of items in Split info array is either less than 1 or greater than 20"
+        );
       }
 
       // Format for response
